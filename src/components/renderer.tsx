@@ -2,7 +2,7 @@
 
 import { Stats, useProgress } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WebGPURendererParameters } from "three/src/renderers/webgpu/WebGPURenderer.Nodes.js";
 import { getConsoleFunction, NoToneMapping, setConsoleFunction, type Texture, WebGPURenderer } from "three/webgpu";
 import type { RootStateWebGPU } from "@/types";
@@ -36,20 +36,21 @@ import { HeroScene, type HeroSceneRenderHandle } from "./scenes/hero";
 import { getPageScrollProgress } from "./utils/get-page-scroll-progress";
 
 function LoadingTracker() {
-  const { active, loaded, progress, total } = useProgress();
+  const { active, loaded } = useProgress();
+  pageLoadProgress.set(loaded / 8);
 
-  useEffect(() => {
-    if (total === 0) {
-      pageLoadProgress.set(1);
-      if (!pageLoaded.get()) pageLoaded.set(true);
+  useLayoutEffect(() => {
+    if (loaded === 8) {
+      setTimeout(() => {
+        pageLoadProgress.set(1);
+        if (!pageLoaded.get()) pageLoaded.set(true);
+      }, 1000);
       return;
     }
 
-    pageLoadProgress.set(progress / 100);
-
     if (pageLoaded.get()) return;
-    if (!active && loaded === total) pageLoaded.set(true);
-  }, [active, loaded, progress, total]);
+    if (!active && loaded === 8) pageLoaded.set(true);
+  }, [active, loaded]);
 
   return null;
 }
