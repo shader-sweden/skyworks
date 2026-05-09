@@ -113,8 +113,8 @@ export function Logo({ renderHandle }: { renderHandle: RefObject<LogoRenderHandl
       <mesh position={[0, 0, -10]} material={backgroundMaterial}>
         <planeGeometry args={[planeWidth * 2, planeHeight * 2]} />
       </mesh>
-      <group position={[0, 0, -5]}>
-        <primitive object={logoScene} scale={0.07} rotation={[0, -0.8, 0]} />
+      <group position={[0, 0.5, -5]}>
+        <primitive object={logoScene} scale={0.09} rotation={[0, -0.8, 0]} />
       </group>
       <ambientLight intensity={0.5} />
       <directionalLight intensity={3} position={[0, 0, 10]} />

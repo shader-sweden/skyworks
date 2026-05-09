@@ -161,7 +161,7 @@ export function Renderer() {
         camera={{ position: [0, 0, 5], fov: 65 }}
         eventSource={eventSource}
         eventPrefix="client"
-        dpr={[1, 1.5]}
+        dpr={[1, 2]}
         gl={async (props) => {
           installThreeConsoleFilter();
           const renderer = new WebGPURenderer({

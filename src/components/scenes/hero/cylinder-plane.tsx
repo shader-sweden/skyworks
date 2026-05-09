@@ -1,66 +1,68 @@
-import { useEffect, useMemo, useRef } from "react";
-import { cos, Fn, mix, positionLocal, sin, uniform, vec3 } from "three/tsl";
-import { MeshBasicNodeMaterial, type UniformNode } from "three/webgpu";
-
-type FloatUniform = UniformNode<"float", number>;
-
-type CylinderPlaneProps = {
-  material?: MeshBasicNodeMaterial;
-  planeWidth: number;
-  planeHeight: number;
-  rotation?: number;
-  radius?: number;
-  centerZ?: number;
-  segmentCount?: number;
-  curvature?: FloatUniform;
-  baseRotation?: number;
-};
+import { useMemo, useRef } from "react";
+import { abs, cos, Fn, float, If, length, max, mix, oneMinus, positionLocal, sin, texture, uniform, uv, vec2, vec3, vec4 } from "three/tsl";
+import { MeshBasicNodeMaterial, type TextureNode, type UniformNode } from "three/webgpu";
 
 export function CylinderPlane({
-  material,
   planeWidth,
   planeHeight,
   rotation = 0,
   radius,
-  centerZ,
   segmentCount = 16,
-  baseRotation = 0,
   curvature,
-}: CylinderPlaneProps) {
-  const rotationUniform = useRef(uniform(rotation));
-  const baseRotationUniform = useRef(uniform(baseRotation));
-  const defaultCurvatureUniform = useRef<FloatUniform>(uniform(1));
+  transitionProgress,
+  backgroundTexture,
+}: {
+  planeWidth: number;
+  planeHeight: number;
+  rotation?: number;
+  radius?: number;
+  segmentCount?: number;
+  curvature?: UniformNode<"float", number>;
+  transitionProgress?: UniformNode<"float", number>;
+  backgroundTexture?: TextureNode<"vec4">;
+}) {
+  const defaultCurvatureUniform = useRef(uniform(1));
   const curvatureUniform = curvature ?? defaultCurvatureUniform.current;
   const cylinderRadius = radius ?? (planeHeight * segmentCount) / (Math.PI * 2);
-  const cylinderCenterZ = centerZ ?? -10 - cylinderRadius;
-  const frontZ = cylinderCenterZ + cylinderRadius;
-
-  useEffect(() => {
-    rotationUniform.current.value = rotation;
-    baseRotationUniform.current.value = baseRotation;
-  }, [rotation, baseRotation]);
+  const frontZ = cylinderRadius;
 
   const cylinderMaterial = useMemo(() => {
-    const mat = material?.clone() ?? new MeshBasicNodeMaterial();
+    const mat = new MeshBasicNodeMaterial();
     const segmentAngle = (Math.PI * 2) / segmentCount;
-    const centerOffsetZ = cylinderCenterZ - frontZ;
+    const centerOffsetZ = -frontZ;
 
     mat.positionNode = Fn(() => {
       const p = positionLocal;
-      const rotationAngle = rotationUniform.current;
-      const angle = p.y.div(planeHeight).mul(segmentAngle).add(rotationAngle);
+      const angle = p.y.div(planeHeight).mul(segmentAngle).add(rotation);
       const curvedPosition = vec3(p.x, sin(angle).mul(cylinderRadius), cos(angle).mul(cylinderRadius).add(centerOffsetZ));
       const flatPosition = vec3(
         p.x,
-        sin(rotationAngle).mul(cylinderRadius).add(cos(rotationAngle).mul(p.y)),
-        cos(rotationAngle).mul(cylinderRadius).add(centerOffsetZ).sub(sin(rotationAngle).mul(p.y)),
+        sin(rotation).mul(cylinderRadius).add(cos(rotation).mul(p.y)),
+        cos(rotation).mul(cylinderRadius).add(centerOffsetZ).sub(sin(rotation).mul(p.y)),
       );
 
       return mix(flatPosition, curvedPosition, curvatureUniform);
     })();
 
+    mat.colorNode = Fn(() => {
+      const borderSize = vec2(0.02).mul(transitionProgress ?? 1);
+      const cornerRadius = float(0.03).mul(transitionProgress ?? 1);
+      const roundedRectHalfSize = vec2(0.5, 0.5).sub(borderSize).sub(cornerRadius);
+      const roundedRectDistance = length(max(abs(uv().sub(0.5)).sub(roundedRectHalfSize), 0)).sub(cornerRadius);
+      const isOutside = roundedRectDistance.greaterThan(0);
+
+      const color = vec4(0);
+      If(isOutside, () => {
+        color.assign(vec4(0));
+      }).Else(() => {
+        color.assign(texture(backgroundTexture, vec2(uv().x, oneMinus(uv().y))).rgba);
+      });
+
+      return color;
+    })();
+
     return mat;
-  }, [curvatureUniform, cylinderCenterZ, cylinderRadius, frontZ, material, planeHeight, segmentCount]);
+  }, [curvatureUniform, cylinderRadius, frontZ, planeHeight, segmentCount, transitionProgress, rotation, backgroundTexture]);
 
   return (
     <mesh frustumCulled={false} position={[0, 0, frontZ]} material={cylinderMaterial}>

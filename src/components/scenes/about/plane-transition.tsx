@@ -75,15 +75,15 @@ export function PlaneTransition({ updateHandle }: { updateHandle: RefObject<Plan
     mat.toneMapped = false;
     mat.transparent = true;
     mat.colorNode = Fn(() => {
-      const centered = uv().sub(vec2(0.5));
-      const angle = atan(centered.y, centered.x);
+      const center = uv().sub(vec2(0.5));
+      const angle = atan(center.y, center.x);
       const blobOffset = sin(angle.mul(3.0).add(timeUniform.current.mul(1.5)))
         .mul(1.5)
         .add(sin(angle.mul(7.0).add(timeUniform.current.mul(2.5))))
         .add(sin(angle.mul(13.0).add(timeUniform.current.mul(0.8))).mul(0.5))
         .mul(0.02)
         .mul(transitionUniform.current);
-      const dist = length(centered).add(blobOffset).mul(1.3);
+      const dist = length(center).add(blobOffset).mul(1.3);
 
       const threshold = float(0.5).mul(transitionUniform.current).sub(dist);
 
@@ -112,7 +112,7 @@ export function PlaneTransition({ updateHandle }: { updateHandle: RefObject<Plan
 
     timeUniform.current.value = clock.getElapsedTime();
     progressUniform.current.value = progress;
-    transitionUniform.current.value = clamp(mapLinear(progress, 0.92, 1, 0, 1), 0, 1);
+    transitionUniform.current.value = clamp(mapLinear(progress, 0.96, 1, 0, 1), 0, 1);
     nextSceneTextureUniform.current.value = nextSceneTexture ?? emptyTexture.current;
 
     planePath.getPointAt(progress, planePosition);
